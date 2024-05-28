@@ -48,7 +48,13 @@ export class CheckSessionService implements OnDestroy {
   private iframeMessageEventListener?: (this:Window, ev: MessageEvent<any>) => any;
 
   get checkSessionChanged$(): Observable<boolean> {
-    return this.checkSessionChangedInternal$.asObservable();
+    return new Observable((subscriber) => {
+      return this.checkSessionChangedInternal$.asObservable().subscribe({
+        next: value => this.zone.run(() => subscriber.next(value)),
+        error: error => this.zone.run(() => subscriber.next(error)),
+        complete: () =>  this.zone.run(() => subscriber.complete()),
+      });
+    });
   }
 
   ngOnDestroy(): void {
@@ -223,16 +229,14 @@ export class CheckSessionService implements OnDestroy {
             );
           }
 
-          this.zone.runOutsideAngular(() => {
-            this.scheduledHeartBeatRunning = this.document?.defaultView?.setTimeout(
-              () => this.zone.run(pollServerSessionRecur),
-              this.heartBeatInterval
-            ) ?? null;
-          });
+          this.scheduledHeartBeatRunning = this.document?.defaultView?.setTimeout(
+            () => pollServerSessionRecur(),
+            this.heartBeatInterval
+          ) ?? null;
         });
     };
 
-    pollServerSessionRecur();
+    this.zone.runOutsideAngular(() => pollServerSessionRecur());
   }
 
   private clearScheduledHeartBeat(): void {
@@ -270,10 +274,10 @@ export class CheckSessionService implements OnDestroy {
           `CheckSession - ${e} from check session messageHandler`
         );
         this.checkSessionReceived = true;
-        this.eventService.fireEvent(EventTypes.CheckSessionReceived, e.data);
+        this.eventService.fireEvent(EventTypes.CheckSessionReceived, e.data); // TODO fireEvent running outside Angular zone
         this.checkSessionChangedInternal$.next(true);
       } else {
-        this.eventService.fireEvent(EventTypes.CheckSessionReceived, e.data);
+        this.eventService.fireEvent(EventTypes.CheckSessionReceived, e.data); // TODO fireEvent running outside Angular zone
         this.loggerService.logDebug(
           configuration,
           `CheckSession - ${e.data} from check session messageHandler`

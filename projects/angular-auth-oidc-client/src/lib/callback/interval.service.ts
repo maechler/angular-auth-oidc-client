@@ -29,7 +29,9 @@ export class IntervalService {
 
       this.zone.runOutsideAngular(() => {
         intervalId = this.document?.defaultView?.setInterval(
-          () => this.zone.run(() => subscriber.next()),
+          // TODO Doing this breaks change detection
+          // () => this.zone.run(() => subscriber.next()),
+          () => subscriber.next(),
           millisecondsDelayBetweenTokenCheck
         );
       });

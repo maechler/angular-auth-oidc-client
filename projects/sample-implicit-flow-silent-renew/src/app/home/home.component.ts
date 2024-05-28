@@ -1,5 +1,6 @@
-import { Component, OnInit, inject } from '@angular/core';
-import { OidcSecurityService } from 'angular-auth-oidc-client';
+import { Component, OnInit, inject, NgZone } from '@angular/core';
+import { OidcSecurityService, PublicEventsService } from 'angular-auth-oidc-client';
+import { BehaviorSubject } from 'rxjs';
 
 @Component({
   selector: 'app-home',
@@ -8,6 +9,8 @@ import { OidcSecurityService } from 'angular-auth-oidc-client';
 export class HomeComponent implements OnInit {
   private readonly oidcSecurityService = inject(OidcSecurityService);
 
+  private readonly eventService = inject(PublicEventsService);
+
   configuration$ = this.oidcSecurityService.getConfiguration();
 
   userData$ = this.oidcSecurityService.userData$;
@@ -15,6 +18,7 @@ export class HomeComponent implements OnInit {
   isAuthenticated = false;
 
   checkSessionChanged$ = this.oidcSecurityService.checkSessionChanged$;
+  //checkSessionChanged$ = new BehaviorSubject(true);
 
   ngOnInit(): void {
     this.oidcSecurityService.isAuthenticated$.subscribe(
@@ -24,6 +28,20 @@ export class HomeComponent implements OnInit {
         console.warn('isAuthenticated: ', isAuthenticated);
       }
     );
+
+    this.eventService.registerForEvents().subscribe(event => {
+      console.log('home:registerForEvents', event)
+      console.log('home:registerForEvents:isInAngularZone', NgZone.isInAngularZone())
+    });
+
+    this.checkSessionChanged$.subscribe(change => {
+      console.log('home:checkSessionChanged$', change)
+      console.log('home:checkSessionChanged$:isInAngularZone', NgZone.isInAngularZone())
+    });
+  }
+
+  ngDoCheck() {
+    console.log('home:ngDoCheck');
   }
 
   login(): void {
